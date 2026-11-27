@@ -180,6 +180,18 @@
         "grand"
       ],
       "remarque": "Instruments et voix. Apple ne publie pas de feedUrl pour ce podcast Radio France : flux à renseigner à la main."
+    },
+    {
+      "id": "les-p-tites-histoires",
+      "titre": "Les P'tites Histoires",
+      "producteur": "Taleming",
+      "appleId": 1407689929,
+      "verifie": true,
+      "feedUrl": null,
+      "profils": [
+        "grand"
+      ],
+      "remarque": "Ajouté depuis l'app le 2026-11-27."
     }
   ]
 }
