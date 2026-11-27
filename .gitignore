@@ -28,3 +28,4 @@ dist-ssr
 
 # Généré par scripts/build-episodes.mjs (CI)
 public/episodes.json
+public/suggestions.json

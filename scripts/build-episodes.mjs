@@ -18,6 +18,10 @@ import { XMLParser } from 'fast-xml-parser'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const CATALOGUE = resolve(ROOT, 'podcasts.json')
 const SORTIE = resolve(ROOT, 'public/episodes.json')
+const SORTIE_SUGGESTIONS = resolve(ROOT, 'public/suggestions.json')
+// Sous-catégories d'« Enfants et famille » : Histoires pour enfants, Éducation pour enfants.
+// (La catégorie entière mélange des podcasts pour les parents.)
+const GENRES_SUGGESTIONS = [1520, 1519]
 const MAX_EPISODES_PAR_PODCAST = 300
 const UA = 'podcasts-enfants/1.0 (+usage familial)'
 
@@ -107,6 +111,28 @@ async function chercherIds(catalogue) {
   console.log('\nVérifie les candidats, puis renseigne appleId dans podcasts.json.')
 }
 
+async function suggestions(catalogue) {
+  const dejaLa = new Set(catalogue.podcasts.map((p) => String(p.appleId)))
+  const vus = new Set()
+  const liste = []
+  for (const genre of GENRES_SUGGESTIONS) {
+    const json = JSON.parse(await telecharger(`https://itunes.apple.com/fr/rss/toppodcasts/limit=50/genre=${genre}/json`))
+    for (const e of json.feed?.entry ?? []) {
+      const appleId = e.id?.attributes?.['im:id']
+      if (!appleId || dejaLa.has(appleId) || vus.has(appleId)) continue
+      vus.add(appleId)
+      liste.push({
+        appleId: Number(appleId),
+        titre: e['im:name']?.label ?? '',
+        producteur: e['im:artist']?.label ?? '',
+        image: e['im:image']?.at(-1)?.label?.replace(/\/\d+x\d+bb/, '/300x300bb') ?? null,
+        resume: (e.summary?.label ?? '').slice(0, 280),
+      })
+    }
+  }
+  return liste
+}
+
 // ---------- RSS ----------
 
 const parser = new XMLParser({
@@ -145,7 +171,9 @@ function lireFlux(xml, podcast) {
     })
   }
   episodes.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
-  return { titreFlux: texte(channel.title).trim(), image: imageFlux, episodes: episodes.slice(0, MAX_EPISODES_PAR_PODCAST) }
+    // « serial » = série à écouter dans l'ordre (épisode 1, 2, 3…)
+  const serie = texte(premier(channel['itunes:type'])).trim().toLowerCase() === 'serial'
+  return { titreFlux: texte(channel.title).trim(), image: imageFlux, serie, episodes: episodes.slice(0, MAX_EPISODES_PAR_PODCAST) }
 }
 
 // ---------- dédoublonnage ----------
@@ -232,12 +260,12 @@ async function main() {
       try {
         const flux = lireFlux(await telecharger(feedUrl), p)
         episodesParPodcast.set(p.id, flux.episodes)
-        etat.push({ ...base, image: base.image ?? flux.image, statut: 'ok', nbEpisodes: flux.episodes.length })
+        etat.push({ ...base, image: base.image ?? flux.image, serie: flux.serie, statut: 'ok', nbEpisodes: flux.episodes.length })
       } catch (e) {
         const anciens = precedent?.episodes?.filter((ep) => ep.podcastId === p.id) ?? []
         const ancienEtat = precedent?.podcasts?.find((x) => x.id === p.id)
         episodesParPodcast.set(p.id, anciens.map((ep) => ({ ...ep, guid: ep.guid ?? ep.id })))
-        etat.push({ ...base, image: base.image ?? ancienEtat?.image ?? null, statut: 'erreur', message: e.message, nbEpisodes: anciens.length })
+        etat.push({ ...base, image: base.image ?? ancienEtat?.image ?? null, serie: ancienEtat?.serie ?? false, statut: 'erreur', message: e.message, nbEpisodes: anciens.length })
       }
     }),
   )
@@ -255,12 +283,21 @@ async function main() {
 
   const sortie = {
     genereLe: new Date().toISOString(),
+    depot: process.env.GITHUB_REPOSITORY ?? null,
     profils: catalogue.profils,
     podcasts,
     episodes,
   }
   await mkdir(dirname(SORTIE), { recursive: true })
   await writeFile(SORTIE, JSON.stringify(sortie))
+
+  try {
+    const liste = await suggestions(catalogue)
+    await writeFile(SORTIE_SUGGESTIONS, JSON.stringify({ genereLe: sortie.genereLe, suggestions: liste }))
+    console.log(`${liste.length} suggestions « Enfants et famille »`)
+  } catch (e) {
+    console.warn(`⚠️  Suggestions non mises à jour : ${e.message}`)
+  }
 
   // Résumé lisible dans les logs de l'Action
   console.log(`\n${episodes.length} épisodes, ${retires} doublons retirés\n`)

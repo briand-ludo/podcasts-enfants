@@ -29,27 +29,12 @@ export default defineConfig({
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png}'],
-        runtimeCaching: [
-          {
-            // Catalogue d'épisodes : réseau d'abord, cache si hors-ligne.
-            urlPattern: ({ url }) => url.pathname.endsWith('/episodes.json'),
-            handler: 'NetworkFirst',
-            options: { cacheName: 'episodes-json', networkTimeoutSeconds: 4 },
-          },
-          {
-            // Vignettes des podcasts/épisodes.
-            urlPattern: ({ request }) => request.destination === 'image',
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'artwork',
-              expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 60 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
-      },
+      // Service worker écrit à la main (src/sw.ts) : il doit servir les épisodes
+      // téléchargés avec les requêtes partielles (Range) qu'exige Safari.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: { globPatterns: ['**/*.{js,css,html,svg,png}'] },
     }),
   ],
 })

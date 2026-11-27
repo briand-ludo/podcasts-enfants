@@ -1,0 +1,69 @@
+name: Ajouter un podcast (depuis une issue)
+
+# Déclenchée par le bouton « Ajouter » de la section Gérer, qui ouvre une issue préremplie.
+# Seules les issues du propriétaire du dépôt sont prises en compte : rien n'est ajouté sans lui.
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
+concurrency:
+  group: catalogue
+  cancel-in-progress: false
+
+jobs:
+  ajouter:
+    if: >-
+      github.event.issue.state == 'open' &&
+      github.event.issue.user.login == github.repository_owner &&
+      (contains(github.event.issue.labels.*.name, 'ajout-podcast') || contains(github.event.issue.body, '<!-- ajout-podcast -->'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - id: ajout
+        name: Ajouter le podcast à podcasts.json
+        run: node scripts/ajouter-podcast.mjs
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+
+      - name: Enregistrer dans le dépôt
+        if: steps.ajout.outputs.statut == 'ajoute'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add podcasts.json
+          git commit -m "Ajout de « ${TITRE} » (issue #${{ github.event.issue.number }})"
+          git push
+        env:
+          TITRE: ${{ steps.ajout.outputs.titre }}
+
+      # Un push fait par l'Action ne relance pas les autres Actions : on lance le déploiement à la main.
+      - name: Rafraîchir les épisodes et redéployer
+        if: steps.ajout.outputs.statut == 'ajoute'
+        run: gh workflow run deploy.yml --ref main
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Répondre et fermer l'issue
+        if: always()
+        run: |
+          if [ "$STATUT" = "ajoute" ]; then
+            gh issue close "$NUM" --comment "✅ « ${TITRE} » est ajouté au catalogue. ${MESSAGE} Il apparaîtra dans l'app après le déploiement (quelques minutes)."
+          else
+            gh issue comment "$NUM" --body "❌ Rien n'a été ajouté : ${MESSAGE:-erreur, voir les journaux de l'Action}"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUM: ${{ github.event.issue.number }}
+          STATUT: ${{ steps.ajout.outputs.statut }}
+          TITRE: ${{ steps.ajout.outputs.titre }}
+          MESSAGE: ${{ steps.ajout.outputs.message }}
