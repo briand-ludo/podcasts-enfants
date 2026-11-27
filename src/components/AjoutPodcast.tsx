@@ -80,15 +80,25 @@ function ConnexionGitHub({ depot, cle, setCle }: { depot: string; cle: string | 
   const [ouvert, setOuvert] = useState(false)
   const [saisie, setSaisie] = useState('')
   const [etat, setEtat] = useState<{ ok?: string; erreur?: string; attente?: boolean }>({})
+  const [copie, setCopie] = useState(false)
 
   if (cle)
     return (
-      <p className="aide connexion-ok">
-        ✅ Les ajouts partent directement d'ici.{' '}
-        <button className="lien" onClick={() => confirm('Oublier la clé GitHub sur cet iPhone ?') && oublierCle().then(() => setCle(null))}>
-          Oublier la clé
-        </button>
-      </p>
+      <div className="aide connexion-ok">
+        <p>
+          ✅ Les ajouts partent directement d'ici.{' '}
+          <button className="lien" onClick={() => confirm('Oublier la clé GitHub sur cet iPhone ?') && oublierCle().then(() => setCle(null))}>
+            Oublier la clé
+          </button>
+        </p>
+        <p>
+          Pour un autre iPhone de la famille :{' '}
+          <button className="lien" onClick={() => navigator.clipboard.writeText(cle).then(() => setCopie(true))}>
+            {copie ? 'Clé copiée ✓' : 'Copier la clé'}
+          </button>
+          , envoie-la par AirDrop, puis colle-la dans « Configurer » sur l'autre iPhone.
+        </p>
+      </div>
     )
 
   const valider = async () => {
@@ -113,6 +123,9 @@ function ConnexionGitHub({ depot, cle, setCle }: { depot: string; cle: string | 
         </button>
       ) : (
         <ol className="etapes">
+          <li className="raccourci">
+            Un autre iPhone de la famille est déjà configuré ? Touche « Copier la clé » sur cet iPhone, envoie-la par AirDrop et colle-la directement à l'étape 4.
+          </li>
           <li>
             <a className="lien" href={urlCreationCle(depot)} target="_blank" rel="noopener">
               Créer une clé sur GitHub

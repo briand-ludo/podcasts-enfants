@@ -247,4 +247,6 @@ h1, h2, h3 { margin: 0; }
 .etapes { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
 .etapes .recherche { margin-top: 6px; }
 .etapes code { font-size: 12px; }
-.connexion-ok { display: block; }
+.connexion-ok { display: flex; flex-direction: column; gap: 6px; }
+.connexion-ok p { margin: 0; }
+.etapes .raccourci { list-style: none; margin-left: -20px; font-style: italic; color: var(--doux); }
