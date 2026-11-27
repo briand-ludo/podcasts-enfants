@@ -16,6 +16,7 @@ export function SectionAjout({ idx }: { idx: Index }) {
   const [resultats, setResultats] = useState<Suggestion[] | null>(null)
   const [choix, setChoix] = useState<Suggestion | null>(null)
   const [cle, setCle] = useState<string | null | undefined>(undefined)
+  const [etape, setEtape] = useState<EtapeAssistant>('ferme')
   const dejaLa = useMemo(() => new Set(c.podcasts.map((p) => p.appleId)), [c])
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export function SectionAjout({ idx }: { idx: Index }) {
   return (
     <section className="carte">
       <h2>Ajouter un podcast</h2>
-      {depot && cle !== undefined && <ConnexionGitHub depot={depot} cle={cle} setCle={setCle} />}
+      {depot && cle !== undefined && <ConnexionGitHub depot={depot} cle={cle} setCle={setCle} etape={etape} setEtape={setEtape} />}
       <form onSubmit={chercher} className="recherche">
         <input className="champ" type="search" value={q} onChange={(e) => (setQ(e.target.value), !e.target.value && setResultats(null))} placeholder="Nom ou lien Apple Podcasts" />
         <button className="bouton-secondaire">Chercher</button>
@@ -69,88 +70,182 @@ export function SectionAjout({ idx }: { idx: Index }) {
           </button>
         ))}
       </div>
-      {choix && <FichePodcast idx={idx} podcast={choix} depot={depot} cle={cle ?? null} fermer={() => setChoix(null)} />}
+      {choix && (
+        <FichePodcast
+          idx={idx}
+          podcast={choix}
+          depot={depot}
+          cle={cle ?? null}
+          fermer={() => setChoix(null)}
+          configurer={() => {
+            setChoix(null)
+            setEtape('choix')
+            setTimeout(() => document.getElementById('assistant-cle')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+          }}
+        />
+      )}
     </section>
   )
 }
 
 // ---------- clé GitHub (une seule fois) ----------
 
-function ConnexionGitHub({ depot, cle, setCle }: { depot: string; cle: string | null; setCle: (k: string | null) => void }) {
-  const [ouvert, setOuvert] = useState(false)
+type EtapeAssistant = 'ferme' | 'choix' | 'ouvrir' | 'regler' | 'coller'
+
+function ConnexionGitHub({
+  depot,
+  cle,
+  setCle,
+  etape,
+  setEtape,
+}: {
+  depot: string
+  cle: string | null
+  setCle: (k: string | null) => void
+  etape: EtapeAssistant
+  setEtape: (e: EtapeAssistant) => void
+}) {
   const [saisie, setSaisie] = useState('')
-  const [etat, setEtat] = useState<{ ok?: string; erreur?: string; attente?: boolean }>({})
+  const [etat, setEtat] = useState<{ erreur?: string; attente?: boolean }>({})
   const [copie, setCopie] = useState(false)
+  const [depuisAutreIphone, setDepuisAutreIphone] = useState(false)
+  const repo = depot.split('/')[1]
 
   if (cle)
     return (
-      <div className="aide connexion-ok">
+      <div className="encart-github ok">
         <p>
-          ✅ Les ajouts partent directement d'ici.{' '}
+          <strong>✅ Clé GitHub en place</strong> : le bouton « Ajouter » envoie la demande directement.
+        </p>
+        <div className="boutons-ligne">
+          <button className="bouton-secondaire" onClick={() => navigator.clipboard.writeText(cle).then(() => setCopie(true))}>
+            {copie ? 'Clé copiée ✓' : 'Copier la clé (pour un autre iPhone)'}
+          </button>
           <button className="lien" onClick={() => confirm('Oublier la clé GitHub sur cet iPhone ?') && oublierCle().then(() => setCle(null))}>
             Oublier la clé
           </button>
-        </p>
-        <p>
-          Pour un autre iPhone de la famille :{' '}
-          <button className="lien" onClick={() => navigator.clipboard.writeText(cle).then(() => setCopie(true))}>
-            {copie ? 'Clé copiée ✓' : 'Copier la clé'}
-          </button>
-          , envoie-la par AirDrop, puis colle-la dans « Configurer » sur l'autre iPhone.
-        </p>
+        </div>
+        {copie && <p className="aide">Envoie-la par AirDrop, puis sur l'autre iPhone : Gérer → Ajouter un podcast → « Configurer » → « Coller une clé ».</p>}
       </div>
     )
 
   const valider = async () => {
     setEtat({ attente: true })
     try {
-      const compte = await enregistrerCle(saisie, depot)
-      setEtat({ ok: compte })
+      await enregistrerCle(saisie, depot)
+      setEtat({})
       setCle(saisie.trim())
+      setEtape('ferme')
     } catch (e) {
       setEtat({ erreur: (e as Error).message })
     }
   }
 
+  const coller = async () => {
+    try {
+      const t = (await navigator.clipboard.readText()).trim()
+      if (t) setSaisie(t)
+    } catch {
+      setEtat({ erreur: 'Collage refusé : touche le champ puis « Coller ».' })
+    }
+  }
+
   return (
-    <div className="encart-github">
-      <p>
-        <strong>Ajouter sans quitter l'app</strong> : à régler une seule fois.
-      </p>
-      {!ouvert ? (
-        <button className="bouton-secondaire" onClick={() => setOuvert(true)}>
-          Configurer (2 min)
-        </button>
-      ) : (
-        <ol className="etapes">
-          <li className="raccourci">
-            Un autre iPhone de la famille est déjà configuré ? Touche « Copier la clé » sur cet iPhone, envoie-la par AirDrop et colle-la directement à l'étape 4.
-          </li>
-          <li>
-            <a className="lien" href={urlCreationCle(depot)} target="_blank" rel="noopener">
-              Créer une clé sur GitHub
-            </a>{' '}
-            (connecte-toi si besoin).
-          </li>
-          <li>
-            Dans <em>Repository access</em>, choisis <em>Only select repositories</em> → <strong>{depot.split('/')[1]}</strong>.
-          </li>
-          <li>
-            Dans <em>Permissions</em> → <em>Repository permissions</em>, mets <strong>Issues</strong> sur <em>Read and write</em> (rien d'autre).
-          </li>
-          <li>
-            <em>Generate token</em>, copie la clé (<code>github_pat_…</code>) et colle-la ici :
-            <div className="recherche">
-              <input className="champ" value={saisie} onChange={(e) => setSaisie(e.target.value)} placeholder="github_pat_…" autoCapitalize="off" autoCorrect="off" spellCheck={false} />
-              <button className="bouton-principal" onClick={valider} disabled={!saisie.trim() || etat.attente}>
-                {etat.attente ? '…' : 'Valider'}
-              </button>
-            </div>
-          </li>
-        </ol>
+    <div className="encart-github" id="assistant-cle">
+      {etape === 'ferme' && (
+        <>
+          <p>
+            <strong>Avant le premier ajout</strong>, l'app a besoin d'une clé GitHub (à faire une seule fois).
+          </p>
+          <button className="bouton-principal" onClick={() => setEtape('choix')}>
+            Configurer
+          </button>
+        </>
       )}
-      {etat.erreur && <p className="erreur-texte">{etat.erreur}</p>}
-      <p className="aide">La clé reste sur cet iPhone et ne permet que de créer des issues dans ce dépôt.</p>
+
+      {etape === 'choix' && (
+        <>
+          <p>
+            <strong>As-tu déjà une clé ?</strong>
+          </p>
+          <button className="bouton-choix" onClick={() => (setDepuisAutreIphone(true), setEtape('coller'))}>
+            <strong>Oui, je l'ai copiée depuis un autre iPhone</strong>
+            <small>Ex. : celui de ton conjoint, via « Copier la clé » puis AirDrop.</small>
+          </button>
+          <button className="bouton-choix" onClick={() => (setDepuisAutreIphone(false), setEtape('ouvrir'))}>
+            <strong>Non, je la crée maintenant</strong>
+            <small>3 étapes sur le site GitHub, environ 2 minutes.</small>
+          </button>
+          <button className="lien" onClick={() => setEtape('ferme')}>
+            Annuler
+          </button>
+        </>
+      )}
+
+      {etape === 'ouvrir' && (
+        <>
+          <p className="numero-etape">Étape 1 sur 3</p>
+          <p>
+            Ouvre la page GitHub de création de clé. Connecte-toi avec ton compte GitHub si on te le demande. La page s'appelle « <em>New fine-grained personal access token</em> ».
+          </p>
+          <a className="bouton-principal" href={urlCreationCle(depot)} target="_blank" rel="noopener" onClick={() => setEtape('regler')}>
+            Ouvrir GitHub
+          </a>
+          <button className="lien" onClick={() => setEtape('regler')}>
+            C'est déjà ouvert → étape suivante
+          </button>
+        </>
+      )}
+
+      {etape === 'regler' && (
+        <>
+          <p className="numero-etape">Étape 2 sur 3 · sur la page GitHub</p>
+          <ol className="etapes">
+            <li>
+              Rubrique <strong>Repository access</strong> : touche <strong>Only select repositories</strong>, puis choisis <strong>{repo}</strong> dans la liste.
+            </li>
+            <li>
+              Rubrique <strong>Permissions</strong> : touche <strong>Add permissions</strong> (ou ouvre <strong>Repository permissions</strong>), cherche <strong>Issues</strong> et choisis{' '}
+              <strong>Read and write</strong>. Ne coche rien d'autre.
+            </li>
+            <li>
+              Tout en bas : bouton vert <strong>Generate token</strong>, puis confirme.
+            </li>
+            <li>
+              GitHub affiche la clé une seule fois : elle commence par <code>github_pat_</code>. Touche l'icône de copie à côté.
+            </li>
+          </ol>
+          <p className="aide">Si certains réglages sont déjà remplis, vérifie-les simplement.</p>
+          <button className="bouton-principal" onClick={() => setEtape('coller')}>
+            J'ai copié la clé → étape 3
+          </button>
+          <button className="lien" onClick={() => setEtape('ouvrir')}>
+            ← Retour
+          </button>
+        </>
+      )}
+
+      {etape === 'coller' && (
+        <>
+          {!depuisAutreIphone && <p className="numero-etape">Étape 3 sur 3 · de retour dans l'app</p>}
+          <p>Colle la clé ici, puis touche « Valider » :</p>
+          <input className="champ" value={saisie} onChange={(e) => setSaisie(e.target.value)} placeholder="github_pat_…" autoCapitalize="off" autoCorrect="off" spellCheck={false} />
+          <div className="boutons-ligne">
+            <button className="bouton-secondaire" onClick={coller}>
+              Coller
+            </button>
+            <button className="bouton-principal" onClick={valider} disabled={!saisie.trim() || etat.attente}>
+              {etat.attente ? 'Vérification…' : 'Valider'}
+            </button>
+          </div>
+          {etat.erreur && <p className="erreur-texte">{etat.erreur}</p>}
+          <button className="lien" onClick={() => setEtape(depuisAutreIphone ? 'choix' : 'regler')}>
+            ← Retour
+          </button>
+        </>
+      )}
+
+      {etape !== 'ferme' && <p className="aide">La clé reste sur cet iPhone. Elle permet seulement de créer des demandes d'ajout dans le dépôt {repo}.</p>}
     </div>
   )
 }
@@ -206,7 +301,7 @@ function texteSimple(html: string) {
 
 type EtatEnvoi = { etape: 'repos' } | { etape: 'envoi' } | { etape: 'suivi'; numero: number; url: string; suivi: Suivi } | { etape: 'erreur'; message: string }
 
-function FichePodcast({ idx, podcast, depot, cle, fermer }: { idx: Index; podcast: Suggestion; depot: string | null; cle: string | null; fermer: () => void }) {
+function FichePodcast({ idx, podcast, depot, cle, fermer, configurer }: { idx: Index; podcast: Suggestion; depot: string | null; cle: string | null; fermer: () => void; configurer: () => void }) {
   const c = idx.catalogue
   const [details, setDetails] = useState<Details | null>(null)
   const [profils, setProfils] = useState<string[]>(c.profils.map((p) => p.id))
@@ -362,13 +457,22 @@ function FichePodcast({ idx, podcast, depot, cle, fermer }: { idx: Index; podcas
                 <button className="bouton-principal" onClick={ajouter} disabled={!profils.length}>
                   Ajouter
                 </button>
-              ) : urlSecours ? (
-                <a className="bouton-principal" href={urlSecours} target="_blank" rel="noopener" aria-disabled={!profils.length}>
-                  Ajouter via GitHub
-                </a>
-              ) : null}
+              ) : (
+                <button className="bouton-principal" onClick={configurer}>
+                  Configurer l'ajout
+                </button>
+              )}
             </div>
-            {!cle && <p className="aide">Astuce : configure la clé GitHub (plus haut) pour ajouter sans quitter l'app.</p>}
+            {!cle && (
+              <p className="aide">
+                L'ajout demande une clé GitHub, à configurer une seule fois.{' '}
+                {urlSecours && (
+                  <a className="lien" href={urlSecours} target="_blank" rel="noopener">
+                    Ou passer par le site GitHub
+                  </a>
+                )}
+              </p>
+            )}
           </>
         ) : (
           <div className="fiche-suivi">

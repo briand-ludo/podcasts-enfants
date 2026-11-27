@@ -243,10 +243,19 @@ h1, h2, h3 { margin: 0; }
 .erreur-texte { color: #b33; font-size: 14px; margin: 0; }
 .encart-github { background: var(--fond); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
 .encart-github p { margin: 0; }
+.encart-github.ok { background: #e8f6ee; }
+.encart-github .bouton-principal { align-self: stretch; }
+.encart-github .lien { align-self: flex-start; font-size: 14px; }
+.boutons-ligne { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.boutons-ligne .bouton-principal { flex: 1; }
+.bouton-choix { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 14px; border-radius: 14px; background: var(--carte); border: 2px solid var(--trait); }
+.bouton-choix:active { border-color: var(--accent); }
+.bouton-choix small { color: var(--doux); }
+.numero-etape { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); }
 .encart-github .bouton-secondaire { background: var(--carte); align-self: flex-start; }
 .etapes { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
 .etapes .recherche { margin-top: 6px; }
 .etapes code { font-size: 12px; }
 .connexion-ok { display: flex; flex-direction: column; gap: 6px; }
 .connexion-ok p { margin: 0; }
-.etapes .raccourci { list-style: none; margin-left: -20px; font-style: italic; color: var(--doux); }
+
