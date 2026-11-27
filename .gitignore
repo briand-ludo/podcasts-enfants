@@ -25,3 +25,6 @@ dist-ssr
 
 .env
 .env.*
+
+# Généré par scripts/build-episodes.mjs (CI)
+public/episodes.json
