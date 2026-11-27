@@ -1,0 +1,140 @@
+{
+  "$comment": "Catalogue familial. appleId = identifiant Apple Podcasts. verifie = false tant que le parent n'a pas confirmé que c'est le bon podcast. feedUrl = flux RSS forcé à la main (seulement si Apple ne le fournit pas). profils = visibilité par défaut, modifiable dans « Gérer ». plusSpecifiqueQue = en cas de doublon, l'épisode est rattaché à ce podcast plutôt qu'à celui cité.",
+  "profils": [
+    { "id": "petit", "nom": "Petit", "age": 3, "avatar": "🐻", "couleur": "#4FB3BF" },
+    { "id": "grand", "nom": "Grand", "age": 5.5, "avatar": "🦊", "couleur": "#FF8A3D" }
+  ],
+  "podcasts": [
+    {
+      "id": "encore-une-histoire",
+      "titre": "Encore une histoire",
+      "producteur": "Encore une histoire (Acast)",
+      "appleId": 1463322273,
+      "verifie": true,
+      "feedUrl": null,
+      "profils": ["petit", "grand"],
+      "remarque": "Public 3–10 ans, nouvel épisode chaque semaine"
+    },
+    {
+      "id": "pierrot-et-poupouche",
+      "titre": "Pierrot et Poupouche",
+      "producteur": "Encore une histoire",
+      "appleId": 1854419184,
+      "verifie": true,
+      "feedUrl": null,
+      "profils": ["petit", "grand"],
+      "plusSpecifiqueQue": ["encore-une-histoire"],
+      "remarque": "Épisodes aussi publiés dans le flux Encore une histoire : dédoublonner"
+    },
+    {
+      "id": "des-histoires-en-musique",
+      "titre": "Des histoires en musique",
+      "producteur": "Radio Classique, Élodie Fondacci",
+      "appleId": 1448708366,
+      "verifie": true,
+      "feedUrl": null,
+      "profils": ["petit", "grand"],
+      "remarque": "Contes sur musique classique, dès 4 ans"
+    },
+    {
+      "id": "histoires-pour-les-oreilles",
+      "titre": "Histoires pour les Oreilles",
+      "producteur": "François Gibert, Christophe Rio",
+      "appleId": null,
+      "verifie": false,
+      "feedUrl": null,
+      "profils": ["petit", "grand"],
+      "remarque": "3–10 ans, coucher ou voiture. Introuvable via la recherche Apple : lien à fournir."
+    },
+    {
+      "id": "pomme-d-api",
+      "titre": "La grande histoire de Pomme d'Api",
+      "producteur": "Bayard",
+      "appleId": 1457819198,
+      "verifie": false,
+      "feedUrl": null,
+      "profils": ["petit", "grand"],
+      "remarque": "Trouvé par recherche Apple (210 épisodes, Ausha) : à confirmer."
+    },
+    {
+      "id": "toudou",
+      "titre": "Toudou",
+      "producteur": "Radio France",
+      "appleId": null,
+      "verifie": false,
+      "feedUrl": null,
+      "profils": ["petit"],
+      "remarque": "2–4 ans. Introuvable via la recherche Apple : lien à fournir."
+    },
+    {
+      "id": "pere-castor-en-chanson",
+      "titre": "Les Histoires du Père Castor en chanson",
+      "producteur": "à vérifier",
+      "appleId": null,
+      "verifie": false,
+      "feedUrl": null,
+      "profils": ["petit"],
+      "remarque": "Dès 3 ans. Introuvable via la recherche Apple : lien à fournir."
+    },
+    {
+      "id": "millie-d",
+      "titre": "Les Histoires de Millie D",
+      "producteur": "RTS",
+      "appleId": 1528687204,
+      "verifie": false,
+      "feedUrl": null,
+      "profils": ["petit"],
+      "remarque": "Dès 3 ans. Candidat Apple : « Millie D. et Farfelu ‐ RTS » (203 épisodes) : à confirmer."
+    },
+    {
+      "id": "ptites-histoires-blou",
+      "titre": "Les P'tites Histoires (La Bande à Blou)",
+      "producteur": "Unique Heritage Media, Abricot",
+      "appleId": null,
+      "verifie": false,
+      "feedUrl": null,
+      "profils": ["petit"],
+      "remarque": "Introuvable sous ce nom. Pistes Apple : « Abricot Présente » (1656939913) ou « Mille et une histoires » (1529856877), Unique Heritage Media."
+    },
+    {
+      "id": "cristal-du-temps",
+      "titre": "Le Cristal du Temps",
+      "producteur": "Iris & Lilas",
+      "appleId": 1880986206,
+      "verifie": false,
+      "feedUrl": null,
+      "profils": ["grand"],
+      "remarque": "Aventures dans l'histoire. Trouvé par recherche Apple (Iris & Lilas, Acast) : à confirmer."
+    },
+    {
+      "id": "bestioles",
+      "titre": "Bestioles",
+      "producteur": "France Inter",
+      "appleId": 1562100547,
+      "verifie": false,
+      "feedUrl": null,
+      "profils": ["grand"],
+      "remarque": "Vie des animaux. Apple ne publie pas de feedUrl pour ce podcast Radio France : flux à renseigner à la main."
+    },
+    {
+      "id": "une-histoire-et-oli",
+      "titre": "Une histoire et… Oli",
+      "producteur": "France Inter",
+      "appleId": 1434557791,
+      "verifie": false,
+      "feedUrl": null,
+      "profils": ["grand"],
+      "remarque": "Histoires du soir. Apple ne publie pas de feedUrl pour ce podcast Radio France : flux à renseigner à la main."
+    },
+    {
+      "id": "les-zinstrus",
+      "titre": "Les Zinstrus",
+      "producteur": "France Musique",
+      "appleId": 1571162644,
+      "verifie": false,
+      "feedUrl": null,
+      "profils": ["grand"],
+      "remarque": "Instruments et voix. Apple ne publie pas de feedUrl pour ce podcast Radio France : flux à renseigner à la main."
+    }
+  ]
+}
