@@ -57,6 +57,18 @@ export function formatDuree(s: number | null | undefined): string {
   return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`
 }
 
+/** « aujourd'hui », « hier », « 22 nov. », « 3 mars 2024 » */
+export function formatDate(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const jour = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime()
+  const ecart = Math.round((jour(new Date()) - jour(d)) / 86_400_000)
+  if (ecart === 0) return "aujourd'hui"
+  if (ecart === 1) return 'hier'
+  const memeAnnee = d.getFullYear() === new Date().getFullYear()
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', ...(memeAnnee ? {} : { year: 'numeric' }) })
+}
+
 export function formatTemps(s: number): string {
   if (!Number.isFinite(s) || s < 0) s = 0
   const h = Math.floor(s / 3600)

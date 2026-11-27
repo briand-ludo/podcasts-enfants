@@ -36,3 +36,5 @@ export const Coche = ({ taille = 24 }: P) => svg(taille, <path d="M20 6.5 9.5 17
 export const Fleche = ({ taille = 24 }: P) => svg(taille, <path d="M11 3h2v11.2l4.1-4.1 1.4 1.4-6.5 6.5-6.5-6.5 1.4-1.4 4.1 4.1Z M5 19h14v2H5Z" />)
 export const Etoile = ({ taille = 24 }: P) =>
   svg(taille, <path d="M12 2.5l1.9 6.1 6.1 1.9-6.1 1.9L12 18.5l-1.9-6.1L4 10.5l6.1-1.9Z M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8Z" />)
+export const Horloge = ({ taille = 24 }: P) =>
+  svg(taille, <path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2.4a7.6 7.6 0 1 0 0 15.2 7.6 7.6 0 0 0 0-15.2Zm1.2 2.8v4.3l3.3 2-1.2 2-4.5-2.8V7.2Z" />)

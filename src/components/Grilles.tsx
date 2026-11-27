@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { formatDuree, type Index } from '../data'
+import { formatDate, formatDuree, type Index } from '../data'
 import { estTelecharge, useHorsLigne } from '../offline'
 import { episodesDuPodcast, lecteur, suiteDe, useLecteur } from '../player'
 import { avatarProfil, choisirProfil, estNouveau, podcastsVisibles, profil, useStore } from '../store'
 import type { Episode } from '../types'
-import { Coche, Etoile, Fleche, Lecture, Pause, Retour } from './Icones'
+import { Coche, Etoile, Fleche, Horloge, Lecture, Pause, Retour } from './Icones'
+
+/** Pseudo-podcast : tous les épisodes visibles du profil, du plus récent au plus ancien. */
+export const RECENTS = '__recents'
 
 function useEnLigne() {
   const [enLigne, set] = useState(navigator.onLine)
@@ -52,6 +55,22 @@ export function EcranAccueil({ idx, profilId, ouvrirPodcast, ouvrirLecteur }: { 
       )}
 
       <div className="grille grille-podcasts">
+        {(() => {
+          const nouveaux = podcasts.reduce((n, p) => n + (idx.parPodcast.get(p.id) ?? []).filter((e) => estNouveau(profilId, e)).length, 0)
+          return (
+            <button className="tuile" onClick={() => ouvrirPodcast(RECENTS)} aria-label="Les plus récents">
+              <span className="vignette vignette-recents">
+                <Horloge taille={72} />
+              </span>
+              {nouveaux > 0 && (
+                <span className="badge-nouveau" aria-label={`${nouveaux} nouveaux`}>
+                  <Etoile taille={18} />
+                  {nouveaux}
+                </span>
+              )}
+            </button>
+          )
+        })()}
         {podcasts.map((p) => {
           const nouveaux = (idx.parPodcast.get(p.id) ?? []).filter((e) => estNouveau(profilId, e)).length
           return (
@@ -80,8 +99,15 @@ export function EcranPodcast({ idx, profilId, podcastId, retour, ouvrirLecteur }
   useHorsLigne()
   const l = useLecteur()
   const enLigne = useEnLigne()
-  const podcast = idx.podcasts.get(podcastId)
-  const liste = episodesDuPodcast(idx, podcastId)
+  const recents = podcastId === RECENTS
+  const podcast = recents ? undefined : idx.podcasts.get(podcastId)
+  // Le catalogue est déjà trié du plus récent au plus ancien.
+  const liste = recents
+    ? (() => {
+        const visibles = new Set(podcastsVisibles(idx.catalogue, profilId).map((p) => p.id))
+        return idx.catalogue.episodes.filter((e) => visibles.has(e.podcastId))
+      })()
+    : episodesDuPodcast(idx, podcastId)
   const [nb, setNb] = useState(PAR_PAGE)
   const fin = useRef<HTMLDivElement>(null)
   const couleur = idx.catalogue.profils.find((p) => p.id === profilId)?.couleur
@@ -111,8 +137,14 @@ export function EcranPodcast({ idx, profilId, podcastId, retour, ouvrirLecteur }
         <button className="bouton-rond" onClick={retour} aria-label="Retour">
           <Retour taille={30} />
         </button>
-        <Vignette src={podcast?.image ?? null} className="entete-image" />
-        <h1 className="entete-titre">{podcast?.titre}</h1>
+        {recents ? (
+          <span className="entete-image vignette-recents">
+            <Horloge taille={32} />
+          </span>
+        ) : (
+          <Vignette src={podcast?.image ?? null} className="entete-image" />
+        )}
+        <h1 className="entete-titre">{recents ? 'Les plus récents' : podcast?.titre}</h1>
       </header>
 
       <div className="grille grille-episodes">
@@ -139,7 +171,7 @@ export function EcranPodcast({ idx, profilId, podcastId, retour, ouvrirLecteur }
                 ) : null}
               </span>
               <span className="tuile-titre">{ep.titre}</span>
-              <span className="tuile-duree">{formatDuree(ep.duree)}</span>
+              <span className="tuile-duree">{[formatDate(ep.date), formatDuree(ep.duree)].filter(Boolean).join(' · ')}</span>
             </button>
           )
         })}
