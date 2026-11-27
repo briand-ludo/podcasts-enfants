@@ -126,7 +126,7 @@ async function suggestions(catalogue) {
         titre: e['im:name']?.label ?? '',
         producteur: e['im:artist']?.label ?? '',
         image: e['im:image']?.at(-1)?.label?.replace(/\/\d+x\d+bb/, '/300x300bb') ?? null,
-        resume: (e.summary?.label ?? '').slice(0, 280),
+        resume: (e.summary?.label ?? '').slice(0, 2000),
       })
     }
   }

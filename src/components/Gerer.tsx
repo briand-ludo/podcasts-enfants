@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
-import { chargerSuggestions, depotGitHub, formatOctets, type Index } from '../data'
+import { useEffect, useState } from 'react'
+import { formatOctets, type Index } from '../data'
 import { espaceUtilise, oublierBlocages, stockagePersistant, supprimer, useHorsLigne } from '../offline'
 import { avatarProfil, estVisible, modifierProfil, nomProfil, profil, useStore } from '../store'
-import type { Suggestion } from '../types'
+import { SectionAjout } from './AjoutPodcast'
 import { Retour, Voiture } from './Icones'
 
 const AVATARS = ['🐻', '🦊', '🐰', '🐱', '🐶', '🐼', '🦁', '🐸', '🐵', '🦄', '🐯', '🐨', '🐧', '🐢', '🦖', '🚀']
@@ -192,123 +192,6 @@ function SectionHorsLigne({ idx, pourLaRoute }: { idx: Index; pourLaRoute: () =>
         </button>
       )}
     </section>
-  )
-}
-
-// ---------- ajouter un podcast ----------
-
-type Resultat = Suggestion
-
-function SectionAjout({ idx }: { idx: Index }) {
-  const c = idx.catalogue
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
-  const [q, setQ] = useState('')
-  const [resultats, setResultats] = useState<Resultat[] | null>(null)
-  const [choix, setChoix] = useState<Resultat | null>(null)
-  const dejaLa = useMemo(() => new Set(c.podcasts.map((p) => p.appleId)), [c])
-  const depot = depotGitHub(c)
-
-  useEffect(() => {
-    chargerSuggestions().then(setSuggestions)
-  }, [])
-
-  const chercher = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const lien = q.match(/id(\d{6,})/)
-    const url = lien
-      ? `https://itunes.apple.com/lookup?id=${lien[1]}&country=FR&entity=podcast`
-      : `https://itunes.apple.com/search?${new URLSearchParams({ term: q, media: 'podcast', country: 'FR', limit: '12' })}`
-    try {
-      const json = await (await fetch(url)).json()
-      setResultats(
-        (json.results ?? [])
-          .filter((r: { kind?: string; wrapperType?: string }) => r.kind === 'podcast' || r.wrapperType === 'track')
-          .map((r: Record<string, string | number>) => ({
-            appleId: Number(r.collectionId),
-            titre: String(r.collectionName),
-            producteur: String(r.artistName ?? ''),
-            image: (r.artworkUrl600 as string) ?? null,
-            resume: r.feedUrl ? '' : '⚠️ Apple ne fournit pas de flux RSS pour ce podcast',
-          })),
-      )
-    } catch {
-      setResultats([])
-    }
-  }
-
-  const liste = (resultats ?? suggestions).filter((s) => !dejaLa.has(s.appleId))
-  return (
-    <section className="carte">
-      <h2>Ajouter un podcast</h2>
-      <form onSubmit={chercher} className="recherche">
-        <input className="champ" type="search" value={q} onChange={(e) => (setQ(e.target.value), !e.target.value && setResultats(null))} placeholder="Nom ou lien Apple Podcasts" />
-        <button className="bouton-secondaire">Chercher</button>
-      </form>
-      <p className="aide">{resultats ? `${liste.length} résultat(s)` : 'Suggestions : les plus écoutés en « Histoires » et « Éducation pour enfants » sur Apple Podcasts.'}</p>
-      <div className="liste-suggestions">
-        {liste.slice(0, 40).map((s) => (
-          <button key={s.appleId} className="suggestion" onClick={() => setChoix(s)}>
-            {s.image ? <img src={s.image} alt="" loading="lazy" /> : <span className="image-vide" />}
-            <span>
-              <strong>{s.titre}</strong>
-              <small>{s.producteur}</small>
-              {s.resume && <small className="resume">{s.resume}</small>}
-            </span>
-          </button>
-        ))}
-      </div>
-      {choix && <DialogueAjout idx={idx} podcast={choix} depot={depot} fermer={() => setChoix(null)} />}
-    </section>
-  )
-}
-
-function DialogueAjout({ idx, podcast, depot, fermer }: { idx: Index; podcast: Resultat; depot: string | null; fermer: () => void }) {
-  const c = idx.catalogue
-  const [profils, setProfils] = useState<string[]>(c.profils.map((p) => p.id))
-  const corps = [
-    '<!-- ajout-podcast -->',
-    "Ajout demandé depuis l'app. Fermer l'issue sans la soumettre suffit pour annuler.",
-    '',
-    '```json',
-    JSON.stringify({ appleId: podcast.appleId, titre: podcast.titre, producteur: podcast.producteur, profils }, null, 2),
-    '```',
-  ].join('\n')
-  const url = depot
-    ? `https://github.com/${depot}/issues/new?${new URLSearchParams({ title: `Ajouter : ${podcast.titre}`, labels: 'ajout-podcast', body: corps })}`
-    : null
-  return (
-    <div className="voile" onClick={fermer}>
-      <div className="dialogue" onClick={(e) => e.stopPropagation()}>
-        {podcast.image && <img src={podcast.image} alt="" className="dialogue-image" />}
-        <h3>{podcast.titre}</h3>
-        <p className="aide">{podcast.producteur}</p>
-        <p>Pour qui ?</p>
-        <div className="choix-profils">
-          {c.profils.map((p) => (
-            <label key={p.id} className="case">
-              <input type="checkbox" checked={profils.includes(p.id)} onChange={(e) => setProfils((l) => (e.target.checked ? [...l, p.id] : l.filter((x) => x !== p.id)))} />
-              {avatarProfil(c, p.id)} {nomProfil(c, p.id)}
-            </label>
-          ))}
-        </div>
-        <p className="aide">
-          Ouvre une issue GitHub préremplie. Une fois l'issue créée, une GitHub Action ajoute le podcast au catalogue ; il apparaît après le prochain
-          rafraîchissement (quelques minutes).
-        </p>
-        <div className="dialogue-actions">
-          <button className="bouton-secondaire" onClick={fermer}>
-            Annuler
-          </button>
-          {url ? (
-            <a className="bouton-principal" href={url} target="_blank" rel="noopener" onClick={fermer} aria-disabled={!profils.length}>
-              Ouvrir GitHub
-            </a>
-          ) : (
-            <span className="aide">Dépôt GitHub inconnu</span>
-          )}
-        </div>
-      </div>
-    </div>
   )
 }
 
